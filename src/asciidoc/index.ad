@@ -1,0 +1,90 @@
+= Lab Instructions
+:icons: font
+
+== Files Of Interest
+- `grails-app/domain/dataservices/Synthesizer.groovy`
+- `grails-app/controllers/dataservices/SynthesizerController.groovy`
+- `grails-app/init/dataservices/BootStrap.groovy`
+- `grails-app/controllers/dataservices/UrlMappings.groovy`
+- `src/integration-test/groovy/dataservices/SynthSpec.groovy`
+- `src/main/groovy/dataservices/SynthesizerService.groovy` (needs to be created)
+
+== Running The Tests
+
+Functional tests may be run from the command line using `gradlew`.
+
+    ./gradlew integrationTest
+
+or
+
+    ./gradlew iT
+
+The `SynthSpec` integration test looks like this:
+
+[source,groovy]
+.src/integration-test/groovy/dataservices/SynthSpec.groovy
+----
+include::{projectdir}/src/integration-test/groovy/dataservices/SynthSpec.groovy[indent=0]
+----
+
+The spec is a very simple spec which interacts with the system to verify that
+the expected number of synthesizers are rendered at the requested pages.
+Most of the test methods are utilizing a custom URL mapping which invokes
+the `synthsByManufacturer` action in the `SynthesizerController`.
+
+[source,groovy]
+.grails-app/controllers/dataservices/SynthesizerController.groovy
+----
+include::{projectdir}/grails-app/controllers/dataservices/SynthesizerController.groovy[tags=begin_class;synth_by_manufacturer;end_class]
+----
+
+Run the integration test and verify that it passes.
+
+Run the application by invoking the `bootRun` Gradle task:
+
+    ./gradlew bootRun
+
+Open a browser and send requests to the same URLs that the integration test
+is using to further understand what is going on.
+
+NOTE: The data you will see is all being created in the `init` closure in
+`BootStrap.groovy`.
+
+== Write A Data Service
+
+The goal of this exercise is to write a Data Service to allow the query logic
+to be moved out of the `synthsByManufacturer` action in
+`SynthesizerController` and to lessen the amount of code required in the
+application.
+
+Start by creating an interface in `src/main/groovy/dataservices/SynthesizerService.groovy`
+and annotate that interface with `@grails.gorm.services.Service.Service(Synthesizer)`.
+In the interface declare a `find*` method that will return a `List<Synthesizer>`.
+The specific name of the method isn't important but give it a name that makes
+sense like `findSynthesizers`.  The method should accept a single `String`
+parameter named `manufacturer`.
+
+To help, below is an example Data Service that would find all `Book` instances
+for a particular `author`.  You will want to do something similar for the
+`SynthesizerService`.
+
+[source,groovy]
+------------------------
+import grails.gorm.services.Service
+
+@Service(Book)
+interface BookService {
+    List<Book> findBooks(String author)
+}
+------------------------
+
+You will want an instance of your Data Service to be autowired into the
+`SynthesizerController` so the controller can invoke the query method.  To do
+this simply declare a property of type `SynthesizerService` named
+`synthesizerService` in the controller and then modify the `synthsByManufacturer`
+method to invoke the appropriate method on the `synthesizerService` property.
+The existing query code in the `synthsByManufacturer` should be replaced with
+that method call.
+
+Run the tests and verify that they pass and interact with the app from a web
+browser as before.
